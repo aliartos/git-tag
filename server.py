@@ -159,10 +159,36 @@ class GitTagHandler(SimpleHTTPRequestHandler):
             self.fetch_repo_branches()
         elif self.path.startswith('/api/commits'):
             self.fetch_repo_commits()
+        elif self.path == '/' or self.path == '/index.html':
+            # Serve the new modular index.html
+            self.serve_file('viewer-app/public/index.html', 'text/html')
+        elif self.path.startswith('/styles.css'):
+            self.serve_file('viewer-app/public/styles.css', 'text/css')
+        elif self.path.startswith('/js/'):
+            # Serve JavaScript files from viewer-app/public/js/
+            js_file = 'viewer-app/public' + self.path
+            self.serve_file(js_file, 'application/javascript')
         else:
             # Serve static files (HTML, JS, CSS, JSON)
             super().do_GET()
     
+    def serve_file(self, filepath, content_type):
+        """Serve a static file"""
+        try:
+            with open(filepath, 'rb') as f:
+                content = f.read()
+
+            self.send_response(200)
+            self.send_header('Content-Type', content_type)
+            self.send_header('Content-Length', len(content))
+            self.end_headers()
+            self.wfile.write(content)
+        except FileNotFoundError:
+            self.send_error(404, f'File not found: {filepath}')
+        except Exception as e:
+            print(f"[ERROR] Error serving file {filepath}: {e}")
+            self.send_error(500, f'Error serving file: {str(e)}')
+
     def do_POST(self):
         """Handle POST requests for bulk operations"""
         if self.path == '/api/bulk-tag':
@@ -815,9 +841,9 @@ def run_server(port=8000):
     print("🚀 Git Tag Viewer Server")
     print("=" * 60)
     print(f"Server running at: http://localhost:{port}/")
-    print(f"View the app at:   http://localhost:{port}/viewer.html")
     print("=" * 60)
     print("✓ Auto-reload: Config changes detected automatically")
+    print("✓ Modular structure: HTML, CSS, JS separated")
     print("Press Ctrl+C to stop the server")
     print("=" * 60)
     print()

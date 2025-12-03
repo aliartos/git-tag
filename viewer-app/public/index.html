@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repository Tag Viewer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📦 Repository Tag Viewer</h1>
+            <p>Visualize repositories and their Git tags</p>
+        </div>
+
+        <div class="controls">
+            <button id="refreshBtn" class="refresh-btn">Refresh Tags</button>
+            <button id="bulkTagBtn" class="bulk-tag-btn">Bulk Tag from Branch</button>
+            <select id="sortOrder" class="sort-dropdown" title="Sort tags by">
+                <option value="name-desc">Sort: Name (Z-A)</option>
+                <option value="name-asc">Sort: Name (A-Z)</option>
+                <option value="commit-desc">Sort: Commit (Recent First)</option>
+                <option value="commit-asc">Sort: Commit (Oldest First)</option>
+            </select>
+            <input type="text" id="searchBox" class="search-box" placeholder="Search repositories or tags..." />
+        </div>
+
+        <div class="stats hidden" id="stats">
+            <div class="stat">
+                <div class="stat-value" id="repoCount">0</div>
+                <div class="stat-label">Repositories</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="tagCount">0</div>
+                <div class="stat-label">Total Tags</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="projectCount">0</div>
+                <div class="stat-label">Projects</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="output">
+                <div class="loading">
+                    <h3>Loading...</h3>
+                    <p>Fetching configuration and repository tags</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Tagging Modal -->
+    <div id="bulkTagModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🏷️ Bulk Tag from Branch</h2>
+                <button class="close-btn" id="closeBulkTagModalBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="branchInput">Branch Name:</label>
+                    <input type="text" id="branchInput" placeholder="e.g., dev, main, feature/xyz" />
+                </div>
+                <div class="form-group">
+                    <label for="tagInput">Tag Name:</label>
+                    <input type="text" id="tagInput" placeholder="e.g., v1.0.0, dev-release" />
+                </div>
+                <button id="checkBranchesBtn" class="controls button">Check Branch Availability</button>
+
+                <div id="branchCheckResults" class="branch-check" style="display: none;">
+                    <h3>Branch Status:</h3>
+                    <div id="branchStatus" class="branch-status"></div>
+                </div>
+
+                <div id="progressLog" class="progress-log" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" id="cancelBulkTagBtn">Cancel</button>
+                <button id="executeTagBtn" class="btn-execute" disabled>Execute Tagging</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
+

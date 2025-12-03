@@ -2,6 +2,17 @@
 
 A universal bash script for batch tagging multiple Git repositories across **Azure DevOps**, **GitHub**, **GitLab**, and any Git hosting platform, with comprehensive logging and error handling.
 
+## 🎉 New: Modular Web Viewer
+
+The web viewer has been reorganized into a maintainable, modular structure! See:
+- 📖 [Viewer Documentation](viewer-app/README.md) - Complete guide to the modular structure
+- 🏗️ [Architecture Overview](ARCHITECTURE.md) - Visual diagrams and data flow
+- 📊 [Reorganization Summary](REORGANIZATION_SUMMARY.md) - What changed and why
+
+**Access the viewer:**
+- New modular version: `http://localhost:8000/`
+- Legacy version: `http://localhost:8000/viewer.html`
+
 ## Features
 
 - ✅ **Multi-platform support** - Azure DevOps, GitHub, GitLab, Bitbucket, self-hosted Git
@@ -263,17 +274,7 @@ Failed repositories:
 ===========================================
 ```
 
-## Migration from Old Format
-
-If you have `repos.txt`, convert it to JSON5 or JSON:
-
-**Old format (repos.txt):**
-```
-ProjectA   Web%20Portal    my-repo
-ProjectB   DevOps          another-repo
-```
-
-**New format (config.json5):**
+**Config format (config.json5):**
 ```json5
 {
   baseUrl: "https://your-org.visualstudio.com",
@@ -306,15 +307,9 @@ kill -9 <PID>
 python3 server.py
 ```
 
-### Email Address in gitUsername
 
-Email addresses (like `user@example.com`) are automatically URL-encoded, so the `@` symbol won't cause issues. No special escaping needed in the config file.
-    }
-  ]
-}
-```
 
-Note: The new format is simplified - project names are no longer needed in the configuration.
+
 
 ## Troubleshooting
 
@@ -359,7 +354,7 @@ A web-based viewer is included to visualize all repositories and their tags:
 
 2. **Open in browser:**
    ```
-   http://localhost:8000/viewer.html
+   http://localhost:8000/
    ```
 
 3. **Stop the server:**
@@ -370,18 +365,21 @@ A web-based viewer is included to visualize all repositories and their tags:
    ```
 
 4. **If port 8000 is already in use:**
-   `**Bulk tag from branch** - Tag multiple repos at once based on a branch name
-- ✅ **Branch availability check** - Warns which repos don't have the specified branch
-- ✅ ``bash
-   # Check what's using the port:
+
+   ### Check what's using the port:
+   ```bash
    lsof -i :8000
-   # Or on some systems:
+   ```
+   ### Or on some systems:
+   ```bash
    netstat -tulpn | grep :8000
-   
-   # Kill the process using the port:
+   ```
+   ### Kill the process using the port:
+   ```bash
    pkill -9 -f "python3 server.py"
-   
-   # Or use a different port:
+   ```
+   ### Or use a different port:
+   ```bash
    python3 server.py 8001
    ```
 
@@ -410,7 +408,7 @@ A web-based viewer is included to visualize all repositories and their tags:
 
 Modify the script to skip push operations - comment out the push commands.
 
-### Parallel Processing
+### Parallel Processing (TBD)
 
 For faster processing of many repositories, consider GNU Parallel:
 
