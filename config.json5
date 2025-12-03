@@ -1,0 +1,50 @@
+// Git Tag Management Configuration
+// Supports Azure DevOps, GitHub, GitLab, and any Git repository
+{
+  // Azure DevOps organization name (optional, only for Azure DevOps repos with dev.azure.com)
+  // Not needed for visualstudio.com URLs (org already in domain)
+  // organization: "my-organization",
+  
+  // Default base URL for all repositories
+  // For Azure DevOps visualstudio.com, org is already in the URL
+  // Can be overridden per repository
+  baseUrl: "",
+  
+  // Optional: Git authentication credentials
+  // If provided, will be used instead of cached credentials
+  gitUsername: "",
+  gitToken: "",
+  
+  // Default tag to apply if not specified on command line
+  defaultTag: "dev-v0.17",
+  
+  // Temporary directory for cloning repositories
+  tmpDir: "/tmp/test-release",
+  
+  // List of repositories to manage
+  repositories: [
+    { 
+      name: "Transcribe 1",   // Friendly display name
+      project: "Transcribe",  // Azure DevOps project name
+      repo: "Transcribe",     // Repository name
+      // Optional: override baseUrl for this repo
+      // baseUrl: "https://my-org.visualstudio.com"
+    },
+    { 
+      name: "Transcribe 2",   // Friendly display name
+      project: "Transcribe",  // Same project, different repo
+      repo: "Transcribe2"
+    },
+    {  
+      name: "Transcribe Git",   // Friendly display name
+      project: "Transcribe",  // Same project, different repo
+      repo: "Transcribe2"
+    },
+    // Example: GitHub repository (baseUrl override with full Git URL)
+    // {
+    //   name: "GitHub Example",
+    //   repo: "git-tag",  // Used for directory name only
+    //   baseUrl: "https://github.com/aliartos/git-tag.git"
+    // }
+  ]
+}
