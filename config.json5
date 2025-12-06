@@ -24,16 +24,16 @@
   // List of repositories to manage
   repositories: [
     { 
-      name: "Transcribe 1",   // Friendly display name
-      project: "Transcribe",  // Azure DevOps project name
-      repo: "Transcribe",     // Repository name
+      name: "Repo 1",   // Friendly display name
+      project: "GitTagRepos",  // Azure DevOps project name
+      repo: "Repo1",     // Repository name
       // Optional: override baseUrl for this repo
       // baseUrl: "https://my-org.visualstudio.com"
     },
     { 
-      name: "Transcribe 2",   // Friendly display name
-      project: "Transcribe",  // Same project, different repo
-      repo: "Transcribe2"
+      name: "Repo 2",   // Friendly display name
+      project: "GitTagRepos",  // Same project, different repo
+      repo: "Repo2"
     },
     {  
       name: "Transcribe Git",   // Friendly display name

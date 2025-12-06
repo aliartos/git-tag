@@ -16,6 +16,7 @@ The web viewer has been reorganized into a maintainable, modular structure! See:
 ## Features
 
 - ✅ **Multi-platform support** - Azure DevOps, GitHub, GitLab, Bitbucket, self-hosted Git
+- ✅ **Flexible branch detection** - Automatically tries dev, main, master, or default branch, to get the repo.
 - ✅ Configuration-driven - Works with any repository structure
 - ✅ Batch processing with progress tracking
 - ✅ Lightweight clones (shallow, single-branch)
@@ -29,6 +30,9 @@ The web viewer has been reorganized into a maintainable, modular structure! See:
 - `bash` (version 4.0+)
 - `git` (version 2.0+)
 - `jq` (for JSON parsing)
+- python3 (for web viewer and json5 conversion)
+
+**Important:** The script requires `config.json` (not `config.json5`). If you have `config.json5`, convert it by removing comments and trailing commas.
 
 ### Installing jq
 
@@ -76,7 +80,7 @@ Create or edit `config.json5` (or `config.json`):
 }
 ```
 
-**Note:** The configuration file supports JSON5 format (with comments and unquoted keys) or standard JSON.
+**Note:** The configuration file supports both JSON5 format (with comments, unquoted keys, and trailing commas) and standard JSON. JSON5 files are automatically converted when the script runs. The default config file is `config.json5`, but you can use `config.json` if preferred.
 
 ### Configuration Fields
 

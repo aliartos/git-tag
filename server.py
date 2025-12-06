@@ -466,7 +466,7 @@ class GitTagHandler(SimpleHTTPRequestHandler):
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json')
                     self.end_headers()
-                    self.wfile.write(json.dumps({'commits': [], 'error': log_result.stderr}).encode())
+                    self.wfile.write(json.dumps({'commits': [], 'branch': branch, 'error': log_result.stderr}).encode())
                     return
                 
                 # Parse commits

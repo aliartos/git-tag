@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-CONFIG_FILE="${CONFIG_FILE:-config.json}"
+CONFIG_FILE="${CONFIG_FILE:-config.json5}"
 VERSION="${1:-}"
 
 # Check if jq is installed
@@ -12,13 +12,113 @@ if ! command -v jq &> /dev/null; then
     exit 1
 fi
 
-# Check if config file exists
+# Check if config file exists - try .json5 first, then .json
 if [ ! -f "$CONFIG_FILE" ]; then
-    echo "ERROR: Configuration file '$CONFIG_FILE' not found"
-    echo "Usage: $0 [version]"
-    echo "Or set CONFIG_FILE environment variable: CONFIG_FILE=custom-config.json $0"
-    exit 1
+    if [ "$CONFIG_FILE" = "config.json5" ] && [ -f "config.json" ]; then
+        CONFIG_FILE="config.json"
+        echo "[INFO] Using config.json instead of config.json5"
+    else
+        echo "ERROR: Configuration file '$CONFIG_FILE' not found"
+        echo "Usage: $0 [version]"
+        echo "Or set CONFIG_FILE environment variable: CONFIG_FILE=custom-config.json $0"
+        exit 1
+    fi
 fi
+
+# Function to convert JSON5 to JSON
+convert_json5_to_json() {
+    local input_file="$1"
+
+    # Try using the Python helper script first (most reliable)
+    if [ -f "./json5_to_json.py" ] && command -v python3 &> /dev/null; then
+        python3 ./json5_to_json.py "$input_file"
+        return $?
+    fi
+
+    # Fallback: inline Python conversion
+    if command -v python3 &> /dev/null; then
+        python3 -c "
+import re
+import json
+
+with open('$input_file', 'r') as f:
+    content = f.read()
+
+# Remove single-line comments (but not URLs with //)
+lines = content.split('\n')
+cleaned_lines = []
+for line in lines:
+    in_string = False
+    quote_char = None
+    comment_start = -1
+
+    for i, char in enumerate(line):
+        if char in ('\"', \"'\") and (i == 0 or line[i-1] != '\\\\'):
+            if not in_string:
+                in_string = True
+                quote_char = char
+            elif char == quote_char:
+                in_string = False
+                quote_char = None
+        elif char == '/' and i < len(line) - 1 and line[i+1] == '/' and not in_string:
+            comment_start = i
+            break
+
+    if comment_start >= 0:
+        cleaned_lines.append(line[:comment_start])
+    else:
+        cleaned_lines.append(line)
+
+content = '\n'.join(cleaned_lines)
+content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+content = re.sub(r'(\n\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:', r'\1\"\2\":', content)
+content = re.sub(r',(\s*[}\]])', r'\1', content)
+
+print(content)
+" 2>/dev/null
+        return $?
+    fi
+
+    # Last resort: sed-based conversion (limited but no dependencies)
+    echo "[WARN] Python not available, using basic sed conversion (may not handle all JSON5 features)" >&2
+    sed -e 's|//.*$||g' \
+        -e 's|/\*.*\*/||g' \
+        -e ':a' -e 'N' -e '$!ba' \
+        -e 's|/\*[^*]*\*\+\([^/*][^*]*\*\+\)*/||g' \
+        -e 's|,\s*\([\]}]\)|\1|g' \
+        "$input_file" | \
+    sed -E 's/^([[:space:]]*)([a-zA-Z_][a-zA-Z0-9_]*)[[:space:]]*:/\1"\2":/g'
+}
+
+# Detect file format and convert if needed
+TEMP_CONFIG=""
+if [[ "$CONFIG_FILE" == *.json5 ]]; then
+    echo "[INFO] Detected JSON5 format, converting to JSON..."
+    TEMP_CONFIG=$(mktemp)
+    if convert_json5_to_json "$CONFIG_FILE" > "$TEMP_CONFIG"; then
+        # Validate the converted JSON
+        if jq empty "$TEMP_CONFIG" 2>/dev/null; then
+            echo "[INFO] ✓ JSON5 converted successfully"
+            CONFIG_FILE="$TEMP_CONFIG"
+        else
+            echo "[ERROR] Failed to convert JSON5 to valid JSON"
+            rm -f "$TEMP_CONFIG"
+            exit 1
+        fi
+    else
+        echo "[ERROR] Failed to process JSON5 file"
+        rm -f "$TEMP_CONFIG"
+        exit 1
+    fi
+fi
+
+# Cleanup function to remove temp file on exit
+cleanup() {
+    if [ -n "$TEMP_CONFIG" ] && [ -f "$TEMP_CONFIG" ]; then
+        rm -f "$TEMP_CONFIG"
+    fi
+}
+trap cleanup EXIT
 
 # Load configuration
 ORGANIZATION=$(jq -r '.organization // ""' "$CONFIG_FILE")
@@ -76,9 +176,9 @@ jq -c '.repositories[]' "$CONFIG_FILE" | while read -r repo_json; do
     project=$(echo "$repo_json" | jq -r '.project // .repo')  # Default to repo if project not specified
     repo_name=$(echo "$repo_json" | jq -r '.repo')
     
-    # URL encode the project name
-    project_encoded=$(echo "$project" | jq -sRr @uri)
-    
+    # URL encode the project name (remove any trailing newlines)
+    project_encoded=$(printf '%s' "$project" | jq -sRr @uri)
+
     echo "==========================================="
     echo "[PROGRESS] Processing repository $current_repo/$total_repos"  
     echo "[INFO] Name: $name"
@@ -94,18 +194,18 @@ jq -c '.repositories[]' "$CONFIG_FILE" | while read -r repo_json; do
         # Full Git URL - use directly
         if [ -n "$GIT_TOKEN" ] && [ "$GIT_TOKEN" != "null" ]; then
             if [ -n "$GIT_USERNAME" ] && [ "$GIT_USERNAME" != "null" ]; then
-                encoded_username=$(echo "$GIT_USERNAME" | jq -sRr @uri)
-                encoded_token=$(echo "$GIT_TOKEN" | jq -sRr @uri)
+                encoded_username=$(printf '%s' "$GIT_USERNAME" | jq -sRr @uri)
+                encoded_token=$(printf '%s' "$GIT_TOKEN" | jq -sRr @uri)
                 auth_part="${encoded_username}:${encoded_token}@"
                 echo "[INFO] Using username:token authentication"
             else
-                encoded_token=$(echo "$GIT_TOKEN" | jq -sRr @uri)
+                encoded_token=$(printf '%s' "$GIT_TOKEN" | jq -sRr @uri)
                 auth_part="${encoded_token}@"
                 echo "[INFO] Using token authentication"
             fi
             repo_url="https://${auth_part}${base_url_clean}"
         elif [ -n "$GIT_USERNAME" ] && [ "$GIT_USERNAME" != "null" ]; then
-            encoded_username=$(echo "$GIT_USERNAME" | jq -sRr @uri)
+            encoded_username=$(printf '%s' "$GIT_USERNAME" | jq -sRr @uri)
             repo_url="https://${encoded_username}@${base_url_clean}"
             echo "[INFO] Using username authentication (will prompt for password)"
         else
@@ -131,18 +231,18 @@ jq -c '.repositories[]' "$CONFIG_FILE" | while read -r repo_json; do
         
         if [ -n "$GIT_TOKEN" ] && [ "$GIT_TOKEN" != "null" ]; then
             if [ -n "$GIT_USERNAME" ] && [ "$GIT_USERNAME" != "null" ]; then
-                encoded_username=$(echo "$GIT_USERNAME" | jq -sRr @uri)
-                encoded_token=$(echo "$GIT_TOKEN" | jq -sRr @uri)
+                encoded_username=$(printf '%s' "$GIT_USERNAME" | jq -sRr @uri)
+                encoded_token=$(printf '%s' "$GIT_TOKEN" | jq -sRr @uri)
                 auth_part="${encoded_username}:${encoded_token}@"
                 echo "[INFO] Using username:token authentication"
             else
-                encoded_token=$(echo "$GIT_TOKEN" | jq -sRr @uri)
+                encoded_token=$(printf '%s' "$GIT_TOKEN" | jq -sRr @uri)
                 auth_part="${encoded_token}@"
                 echo "[INFO] Using token authentication"
             fi
             repo_url="https://${auth_part}${base_url_clean}/${url_path}"
         elif [ -n "$GIT_USERNAME" ] && [ "$GIT_USERNAME" != "null" ]; then
-            encoded_username=$(echo "$GIT_USERNAME" | jq -sRr @uri)
+            encoded_username=$(printf '%s' "$GIT_USERNAME" | jq -sRr @uri)
             repo_url="https://${encoded_username}@${base_url_clean}/${url_path}"
             echo "[INFO] Using username authentication (will prompt for password)"
         else
@@ -153,15 +253,21 @@ jq -c '.repositories[]' "$CONFIG_FILE" | while read -r repo_json; do
             fi
             echo "[INFO] Using credential cache authentication"
         fi
-        repo_url="https://$ORGANIZATION@${BASE_URL#https://}/$ORGANIZATION/$project_encoded/_git/$repo_name"
-        echo "[INFO] Using credential cache authentication"
     fi
     
     # Clone
     echo "[STEP 1/5] Cloning repository..."
     cd "$TMP_DIR"
-    if git clone --depth 1 --single-branch --branch dev "$repo_url"; then
-        echo "[SUCCESS] Repository cloned successfully"
+
+    # Try to clone - first attempt with dev branch, then try without specifying branch
+    if git clone --depth 1 --single-branch --branch dev "$repo_url" 2>/dev/null; then
+        echo "[SUCCESS] Repository cloned successfully (dev branch)"
+    elif git clone --depth 1 --single-branch --branch main "$repo_url" 2>/dev/null; then
+        echo "[SUCCESS] Repository cloned successfully (main branch)"
+    elif git clone --depth 1 --single-branch --branch master "$repo_url" 2>/dev/null; then
+        echo "[SUCCESS] Repository cloned successfully (master branch)"
+    elif git clone --depth 1 "$repo_url" 2>/dev/null; then
+        echo "[SUCCESS] Repository cloned successfully (default branch)"
     else
         echo "[ERROR] Failed to clone repository: $repo_name"
         failed_repos+=("$repo_name (clone)")

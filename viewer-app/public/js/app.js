@@ -203,14 +203,17 @@ async function handleLoadCommits(index) {
     try {
         const commits = await fetchRepoCommits(repo, limit, branch);
 
+        // Use branch from response or fallback to the requested branch
+        const branchName = commits.branch || branch;
+
         if (commits.commits.length === 0) {
-            showNoCommits(index, commits.branch);
+            showNoCommits(index, branchName);
             repoCommitsState[index] = { loaded: true, commits: [] };
             return;
         }
 
-        repoCommitsState[index] = { loaded: true, commits: commits.commits, branch: commits.branch };
-        renderCommits(index, repo, commits.commits, commits.branch);
+        repoCommitsState[index] = { loaded: true, commits: commits.commits, branch: branchName };
+        renderCommits(index, repo, commits.commits, branchName);
     } catch (error) {
         showCommitsError(index, error.message);
         delete repoCommitsState[index];
@@ -228,6 +231,13 @@ function handleBulkTagModalOpen() {
 
     openBulkTagModal();
     branchCheckResults = {};
+
+    // Reset execute button state
+    const executeBtn = document.getElementById('executeTagBtn');
+    executeBtn.textContent = 'Execute Tagging';
+    executeBtn.classList.remove('secondary');
+    executeBtn.classList.add('primary');
+    executeBtn.disabled = true;
 }
 
 /**
@@ -291,6 +301,14 @@ async function handleCheckBranches() {
  * Handle execute bulk tag button click
  */
 async function handleExecuteBulkTag() {
+    const executeBtn = document.getElementById('executeTagBtn');
+
+    // Check if button is now a close button (after successful tagging)
+    if (executeBtn.textContent.includes('Close')) {
+        closeBulkTagModal();
+        return;
+    }
+
     const branchName = document.getElementById('branchInput').value.trim();
     const tagName = document.getElementById('tagInput').value.trim();
 
@@ -307,13 +325,8 @@ async function handleExecuteBulkTag() {
         return;
     }
 
-    const confirmMsg = `This will create tag "${tagName}" on branch "${branchName}" for ${reposToTag.length} repositories. Continue?`;
-    if (!confirm(confirmMsg)) {
-        return;
-    }
-
     // Disable inputs and show progress
-    document.getElementById('executeTagBtn').disabled = true;
+    executeBtn.disabled = true;
     document.getElementById('branchInput').disabled = true;
     document.getElementById('tagInput').disabled = true;
 
@@ -325,15 +338,25 @@ async function handleExecuteBulkTag() {
         // Display results
         const successCount = renderBulkTagProgress(data);
 
-        // Refresh tags after bulk operation
+        // Change button to "Close Modal" after successful operation
         if (successCount > 0) {
+            executeBtn.textContent = 'Close Modal';
+            executeBtn.disabled = false;
+            executeBtn.classList.remove('primary');
+            executeBtn.classList.add('secondary');
+
+            // Refresh tags after bulk operation
             setTimeout(() => {
                 loadAndRefresh();
             }, 2000);
+        } else {
+            // Re-enable button if no success
+            executeBtn.disabled = false;
         }
 
     } catch (error) {
         showBulkTagError(error.message);
+        executeBtn.disabled = false;
     } finally {
         // Re-enable inputs
         document.getElementById('branchInput').disabled = false;
