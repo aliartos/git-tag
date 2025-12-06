@@ -1,8 +1,11 @@
 # Git Tag Management Tool
 
-A universal bash script for batch tagging multiple Git repositories across **Azure DevOps**, **GitHub**, **GitLab**, and any Git hosting platform, with comprehensive logging and error handling.
+A universal bash script and UI tool for batch tagging multiple Git repositories across **Azure DevOps**, **GitHub**, **GitLab**, and any Git hosting platform, with comprehensive logging and error handling.
 
-## 🎉 New: Modular Web Viewer
+![alt text](viewer-app/screens/image.png)
+
+
+## Modular Web Viewer
 
 The web viewer has been reorganized into a maintainable, modular structure! See:
 - 📖 [Viewer Documentation](viewer-app/README.md) - Complete guide to the modular structure

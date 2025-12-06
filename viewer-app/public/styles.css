@@ -154,6 +154,15 @@ body {
     padding: 30px;
 }
 
+/* Filters */
+.filter-bar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
 /* Repository Grid */
 .repo-grid {
     display: grid;
@@ -757,4 +766,3 @@ body {
         gap: 15px;
     }
 }
-

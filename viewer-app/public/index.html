@@ -16,13 +16,6 @@
         <div class="controls">
             <button id="refreshBtn" class="refresh-btn">Refresh Tags</button>
             <button id="bulkTagBtn" class="bulk-tag-btn">Bulk Tag from Branch</button>
-            <select id="sortOrder" class="sort-dropdown" title="Sort tags by">
-                <option value="name-desc">Sort: Name (Z-A)</option>
-                <option value="name-asc">Sort: Name (A-Z)</option>
-                <option value="commit-desc">Sort: Commit (Recent First)</option>
-                <option value="commit-asc">Sort: Commit (Oldest First)</option>
-            </select>
-            <input type="text" id="searchBox" class="search-box" placeholder="Search repositories or tags..." />
         </div>
 
         <div class="stats hidden" id="stats">
@@ -41,6 +34,15 @@
         </div>
 
         <div class="content">
+            <div class="filter-bar">
+                <input type="text" id="searchBox" class="search-box" placeholder="Search repositories or tags..." />
+                <select id="sortOrder" class="sort-dropdown" title="Sort tags by">
+                    <option value="name-desc">Sort: Name (Z-A)</option>
+                    <option value="name-asc">Sort: Name (A-Z)</option>
+                    <option value="commit-desc">Sort: Commit (Recent First)</option>
+                    <option value="commit-asc">Sort: Commit (Oldest First)</option>
+                </select>
+            </div>
             <div id="output">
                 <div class="loading">
                     <h3>Loading...</h3>
@@ -89,4 +91,3 @@
     <script src="js/app.js"></script>
 </body>
 </html>
-

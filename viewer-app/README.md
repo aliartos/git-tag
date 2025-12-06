@@ -1,9 +1,10 @@
-# Viewer Application - Reorganized Structure
+# Modular Web Viewer
 
 ## Overview
-The viewer application has been reorganized into a modular structure for better maintainability, separating HTML, CSS, and JavaScript into dedicated files.
 
-## Directory Structure
+The viewer application helps quickly visualize and manage tags across multiple repositories, supporting bulk tagging operations.
+
+
 
 ```
 viewer-app/
