@@ -79,7 +79,7 @@ function sortTags(tags, sortOrder) {
  * @param {Array} repos - Array of repositories
  * @param {string} sortOrder - Current sort order
  */
-function renderRepos(repos, sortOrder) {
+function renderRepos(repos, sortOrder, branchesState = {}, settings = {}, commitsState = {}) {
     const output = document.getElementById('output');
 
     if (repos.length === 0) {
@@ -98,14 +98,43 @@ function renderRepos(repos, sortOrder) {
         sortTags(repo.tags, sortOrder);
     });
 
+    const defaultCommitLimit = parseInt(settings.defaultCommitLimit, 10) || 10;
+
     const html = `
         <div class="repo-grid">
             ${repos.map((repo, index) => {
+                const repoIndex = (typeof allRepos !== 'undefined')
+                    ? allRepos.findIndex(r => r.repo === repo.repo && (r.project || r.repo) === (repo.project || repo.repo))
+                    : index;
+                const safeIndex = repoIndex === -1 ? index : repoIndex;
+
                 const savedBranch = loadBranchSelection(repo.repo);
-                const isCustom = !['main', 'dev', 'master'].includes(savedBranch);
+                const branchState = branchesState[repo.repo] || {};
+                const branchOptions = (branchState.branches && branchState.branches.length)
+                    ? Array.from(new Set(branchState.branches))
+                    : ['main', 'dev', 'master'];
+
+                if (savedBranch && !branchOptions.includes(savedBranch)) {
+                    branchOptions.unshift(savedBranch);
+                }
+
+                const selectedBranch = branchOptions.includes(savedBranch)
+                    ? savedBranch
+                    : branchOptions[0] || 'dev';
+
+                const branchStatusLabel = branchState.loading
+                    ? 'Loading branches...'
+                    : branchState.error
+                        ? 'Branches unavailable'
+                        : `Branches (${branchOptions.length})`;
+
+                const limitOptions = [5, 10, 20, 50];
+                if (!limitOptions.includes(defaultCommitLimit)) {
+                    limitOptions.unshift(defaultCommitLimit);
+                }
 
                 return `
-                <div class="repo-card" data-repo-index="${index}">
+                <div class="repo-card" data-repo-index="${safeIndex}">
                     <div class="repo-name">${escapeHtml(repo.name || repo.repo)}</div>
                     <div class="repo-projects">
                         <div class="repo-project">
@@ -138,33 +167,62 @@ function renderRepos(repos, sortOrder) {
                         </div>
                         <div class="commits-controls" style="margin-top: 15px;">
                             <label>View commits - Branch:</label>
-                            <select id="branch-select-${index}" data-repo-index="${index}">
-                                <option value="main" ${savedBranch === 'main' ? 'selected' : ''}>main</option>
-                                <option value="dev" ${savedBranch === 'dev' ? 'selected' : ''}>dev</option>
-                                <option value="master" ${savedBranch === 'master' ? 'selected' : ''}>master</option>
-                                <option value="custom" ${isCustom ? 'selected' : ''}>Custom</option>
-                            </select>
-                            <input type="text" id="branch-custom-input-${index}" 
-                                   placeholder="custom branch"
-                                   value="${isCustom ? escapeHtml(savedBranch) : ''}"
-                                   data-repo-index="${index}" />
+                            <div class="branch-row">
+                                <select id="branch-select-${safeIndex}" data-repo-index="${safeIndex}" data-repo-name="${escapeHtml(repo.repo)}">
+                                    ${branchOptions.map(branch => `
+                                        <option value="${escapeHtml(branch)}" ${branch === selectedBranch ? 'selected' : ''}>${escapeHtml(branch)}</option>
+                                    `).join('')}
+                                </select>
+                                <button class="refresh-branches-btn" data-refresh-branches="${safeIndex}">🔄 Refresh Branches</button>
+                                <span class="branch-status-pill ${branchState.loading ? 'loading' : branchState.error ? 'error' : 'ok'}" id="branch-status-${safeIndex}">
+                                    ${escapeHtml(branchStatusLabel)}
+                                </span>
+                            </div>
                             <label>Limit:</label>
-                            <select id="limit-select-${index}">
-                                <option value="5">5</option>
-                                <option value="10" selected>10</option>
-                                <option value="20">20</option>
-                                <option value="50">50</option>
+                            <select id="limit-select-${safeIndex}">
+                                ${limitOptions.map(limit => `
+                                    <option value="${limit}" ${limit === defaultCommitLimit ? 'selected' : ''}>${limit}</option>
+                                `).join('')}
                             </select>
-                            <button data-load-commits="${index}">📝 View Commits</button>
+                            <button data-load-commits="${safeIndex}">📝 View Commits</button>
                         </div>
                     </div>
-                    <div id="commits-${index}" class="commits-container"></div>
+                    <div id="commits-${safeIndex}" class="commits-container"></div>
                 </div>
             `}).join('')}
         </div>
     `;
 
     output.innerHTML = html;
+
+    restoreCommitSections(commitsState, repos);
+}
+
+/**
+ * Re-render commit sections after the repo grid rehydrates
+ * @param {Object} commitsState - commit cache keyed by repo index
+ * @param {Array} repos - repositories rendered
+ */
+function restoreCommitSections(commitsState, repos) {
+    if (!commitsState || !repos) return;
+
+    Object.entries(commitsState).forEach(([index, state]) => {
+        const repoIndex = parseInt(index, 10);
+        const container = document.getElementById(`commits-${repoIndex}`);
+        if (!container || !state || !state.loaded || !state.commits) return;
+
+        const repo = (typeof allRepos !== 'undefined' && allRepos[repoIndex]) ? allRepos[repoIndex] : repos[repoIndex];
+        if (!repo) return;
+
+        const branch = state.branch || loadBranchSelection(repo.repo);
+
+        if (state.commits.length === 0) {
+            showNoCommits(repoIndex, branch);
+            return;
+        }
+
+        renderCommits(repoIndex, repo, state.commits, branch);
+    });
 }
 
 /**
@@ -277,11 +335,11 @@ function openBulkTagModal() {
 
     // Load saved values from localStorage
     const savedInputs = loadBulkTagInputs();
-    const branchInput = document.getElementById('branchInput');
+    const branchInput = document.getElementById('branchSelectModal');
     const tagInput = document.getElementById('tagInput');
 
     branchInput.value = savedInputs.branch;
-    tagInput.value = savedInputs.tag;
+    // Tag will be filled by latest tag in app logic; keep existing value otherwise
 
     document.getElementById('branchCheckResults').style.display = 'none';
     document.getElementById('progressLog').style.display = 'none';
@@ -389,4 +447,3 @@ function showBulkTagError(message) {
     const progressLog = document.getElementById('progressLog');
     progressLog.innerHTML += `<div class="progress-log-line error">Error: ${message}</div>`;
 }
-

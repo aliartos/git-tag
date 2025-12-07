@@ -7,7 +7,12 @@
 const STORAGE_KEYS = {
     BRANCH_SELECTIONS: 'gitTag.branchSelections',
     BULK_TAG_BRANCH: 'gitTag.bulkTagBranch',
-    BULK_TAG_NAME: 'gitTag.bulkTagName'
+    ADVANCED_SETTINGS: 'gitTag.advancedSettings'
+};
+
+const DEFAULT_ADVANCED_SETTINGS = {
+    autoFetchCommits: false,
+    defaultCommitLimit: 10
 };
 
 /**
@@ -65,9 +70,8 @@ function loadBranchSelection(repoName) {
  * @param {string} branchName - Branch name
  * @param {string} tagName - Tag name
  */
-function saveBulkTagInputs(branchName, tagName) {
+function saveBulkTagInputs(branchName) {
     saveToLocalStorage(STORAGE_KEYS.BULK_TAG_BRANCH, branchName);
-    saveToLocalStorage(STORAGE_KEYS.BULK_TAG_NAME, tagName);
 }
 
 /**
@@ -77,7 +81,30 @@ function saveBulkTagInputs(branchName, tagName) {
 function loadBulkTagInputs() {
     return {
         branch: loadFromLocalStorage(STORAGE_KEYS.BULK_TAG_BRANCH, ''),
-        tag: loadFromLocalStorage(STORAGE_KEYS.BULK_TAG_NAME, '')
+        tag: ''
     };
 }
 
+/**
+ * Save advanced settings
+ * @param {{autoFetchCommits: boolean, defaultCommitLimit: number}} settings - Advanced settings values
+ */
+function saveAdvancedSettings(settings) {
+    const mergedSettings = {
+        ...DEFAULT_ADVANCED_SETTINGS,
+        ...settings
+    };
+    saveToLocalStorage(STORAGE_KEYS.ADVANCED_SETTINGS, mergedSettings);
+}
+
+/**
+ * Load advanced settings with defaults
+ * @returns {{autoFetchCommits: boolean, defaultCommitLimit: number}}
+ */
+function loadAdvancedSettings() {
+    const settings = loadFromLocalStorage(STORAGE_KEYS.ADVANCED_SETTINGS, DEFAULT_ADVANCED_SETTINGS);
+    return {
+        ...DEFAULT_ADVANCED_SETTINGS,
+        ...settings
+    };
+}

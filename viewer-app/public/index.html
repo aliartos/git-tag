@@ -42,6 +42,36 @@
                     <option value="commit-desc">Sort: Commit (Recent First)</option>
                     <option value="commit-asc">Sort: Commit (Oldest First)</option>
                 </select>
+                <button id="advancedSettingsToggle" class="advanced-toggle-btn" aria-expanded="false">Advanced Settings</button>
+            </div>
+
+            <div id="advancedSettingsPanel" class="advanced-panel hidden" aria-hidden="true">
+                <div class="advanced-panel-header">
+                    <div>
+                        <div class="advanced-title">Advanced Settings</div>
+                        <div class="advanced-subtitle">Control how commits are fetched and displayed.</div>
+                    </div>
+                    <span class="advanced-badge">⚙️</span>
+                </div>
+
+                <div class="setting-row">
+                    <div>
+                        <label for="autoFetchToggle">Auto-fetch commits on load</label>
+                        <p class="setting-help">Automatically load commits for each repository right after tags refresh.</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="autoFetchToggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-row">
+                    <div>
+                        <label for="defaultLimitInput">Default commit limit</label>
+                        <p class="setting-help">Applied to commit views and auto-fetch. You can still override per request.</p>
+                    </div>
+                    <input type="number" id="defaultLimitInput" class="number-input" min="1" step="1" value="10" />
+                </div>
             </div>
             <div id="output">
                 <div class="loading">
@@ -61,8 +91,12 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label for="branchInput">Branch Name:</label>
-                    <input type="text" id="branchInput" placeholder="e.g., dev, main, feature/xyz" />
+                    <label for="branchSelectModal">Branch Name:</label>
+                    <div class="inline-field">
+                        <select id="branchSelectModal"></select>
+                        <button id="refreshBulkBranchesBtn" class="controls button" type="button">Refresh Branches</button>
+                    </div>
+                    <p class="setting-help" style="margin-top: 6px;">Options are pulled from all repositories and saved locally.</p>
                 </div>
                 <div class="form-group">
                     <label for="tagInput">Tag Name:</label>
